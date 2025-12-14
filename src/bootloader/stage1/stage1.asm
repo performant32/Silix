@@ -63,7 +63,7 @@ get_drive_parameters:
     mov cl, 16
     mov dh, 1
     mov dl, 0x0
-    mov bx, 0x7D00
+    mov bx, 0x7E00
     int 0x13
 
     ; Checking Errors
@@ -83,11 +83,9 @@ get_drive_parameters:
     call print_string
     jmp .Done
 .Success: 
-    cld
-    mov si, msg_success
-    call print_string
-    mov si, bx
-    call print_string
+    push es
+    push bx
+    retf
 .Done:
     leave
     ret
@@ -105,14 +103,6 @@ print_string:
     jmp .Loop
 .Finish:
     ret
-DAPACK:
-    db 0x10
-    db 0x00
-    dw 1
-    dw 0x7C00
-    dw 0
-    dd 51
-    dd 0
 times 446 - ($-$$) db 0
 ; Data
 %define ENDL 13, 10
