@@ -107,6 +107,8 @@ int main(int argc, char** argv){
 
     write(1, bpb.m_VolumeLabelString, 11);
     PrintNewLine();
+    CHS chs1 = LBAToCHS(&bpb, 20);
+    printf("LBA 1 %u %u %u\n", chs1.m_Cylinder, chs1.m_Head, chs1.m_Sector);
 
     printf("Sectors per cluster %u\n", bpb.m_SectorsPerCluster); 
     printf("Fat count %u\n", bpb.m_FatCount); 
@@ -123,31 +125,47 @@ int main(int argc, char** argv){
     // Reading Main File
     for(size_t i = 0; i < bpb.m_RootEntries; i++){
         DirectoryEntry* entry = &root[i];
-        if(strncmp(entry->m_FileName, "STAGE6  BIN", 11)){
+        if(strncmp(entry->m_FileName, "TEST    BIN", 11)){
             continue;
         }
         printf("Got file");
         printf("Data size %d\n", entry->m_Size);
-        char* fileData = (char*)malloc(entry->m_Size);
+        size_t bytesPerSector = bpb.m_BytesPerSector;
+        size_t bytesPerCluster = bpb.m_BytesPerSector * bpb.m_SectorsPerCluster;
+        char* fileData = (char*)calloc(sizeof(char), entry->m_Size);
+        size_t rootEntryBytes = sizeof(DirectoryEntry) * bpb.m_RootEntries;
+        size_t fatOffset = bytesPerSector * bpb.m_ReservedSectors; 
         size_t cluster = entry->m_FirstLogicalCluster;
-        size_t offset = bpb.m_BytesPerSector * (bpb.m_ReservedSectors + bpb.m_SectorsPerFAT * bpb.m_FatCount) + sizeof(DirectoryEntry) * bpb.m_RootEntries + (cluster - 2) * bpb.m_SectorsPerCluster * bpb.m_BytesPerSector;
-        size_t lba = (bpb.m_ReservedSectors + bpb.m_SectorsPerFAT * bpb.m_FatCount) + (((bpb.m_RootEntries * sizeof(DirectoryEntry) + (bpb.m_BytesPerSector - 1)) / bpb.m_BytesPerSector)) + (cluster - 2) * bpb.m_SectorsPerCluster;
-        printf("Logical cluster %u\n", bpb.m_SectorsPerCluster);
-        printf("offset %u\n", offset);
+        size_t clusterIndex = (cluster - 2) * bpb.m_SectorsPerCluster;
+        size_t clusterDataOffset = clusterIndex* bytesPerSector;
+        size_t dataOffset = bytesPerSector * (bpb.m_ReservedSectors + bpb.m_SectorsPerFAT * bpb.m_FatCount) + rootEntryBytes;
+        size_t lba = (bpb.m_ReservedSectors + bpb.m_SectorsPerFAT * bpb.m_FatCount) + (((rootEntryBytes + (bytesPerSector - 1)) / bytesPerSector)) + clusterIndex;
         printf("LBA id is %u\n", lba);
         CHS chs = LBAToCHS(&bpb, lba);
         printf("CHS %u %u %u\n", chs.m_Cylinder, chs.m_Head, chs.m_Sector);
-        memcpy(fileData,
-            data + offset
-        ,entry->m_Size);
-        for(size_t j = 0; j < entry->m_Size; j++)printf("%c", fileData[j]);
-        //printf("Data %.*s \n", entry->m_Size, fileData);
+        size_t fileSize = entry->m_Size;
+        printf("File size %d\n", fileSize);
+        size_t bytesRead = 0;
+        size_t currentCluster = cluster;
+        printf("FAT at %u\n", fatOffset);
+        do{
+            printf("Reading cluster %u\n", currentCluster);
+            size_t offset = dataOffset + (currentCluster - 2) * bytesPerCluster;
+            size_t toRead = fileSize - bytesRead;
+            size_t count = toRead >= bytesPerCluster ? bytesPerCluster : toRead;
+            printf("Count %u\n", count);
+            memcpy(fileData + bytesRead, data + offset, count);
+            printf("Bytes Read %u\n", bytesRead);
+            bytesRead+=count;
+            uint16_t* tableValues = (uint16_t*)fileData;
+            size_t fatIndex = currentCluster + (currentCluster / 2);
+            printf("Fat offset %u\n", fatIndex);
+            uint16_t value = ((uint16_t*)( data+ fatOffset+ fatIndex))[0];
+            currentCluster = (currentCluster & 1) ? value >> 4 : value & 0xFFF;
+        }while(bytesRead < fileSize);
+        printf("\n");
         free(fileData);
     }
-    //char* fileData = ReadFile(data, &bpb, root, "SOURCE .TXT");
-    //if(fileData)printf("File data %s\n", fileData);
-    //else fprintf(stderr, "Failed to read file\n");
-    //free(fileData);
     free(data);
     printf("Closing File");
     close(file);

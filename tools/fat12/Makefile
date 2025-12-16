@@ -6,4 +6,4 @@ default: fat12
 always:
 	mkdir -p $(OUTPUT_DIR)
 fat12: always
-	$(CC) $(SRC_DIR)/Main.c -o $(OUTPUT_DIR)/fat12
+	$(CC) $(SRC_DIR)/main.c -o $(OUTPUT_DIR)/fat12
