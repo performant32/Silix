@@ -1,25 +1,28 @@
 ASM := nasm
 ASM_FLAGS := -f bin
-OBJ_DIR:=bin/objs
-BIN_DIR:=bin
-ISO_DIR:=bin/iso
-KERNEL_SRC:=src/kernel
 # Boot Options are [floppy]
-BOOT_FS:=floppy
+BOOT_FS:=fat12
 # Modes are [graphic, nographic]
-BOOT_MODE:=graphic
+BOOT_MODE:=nographic
+# Modes are [IA, AArch]
+Arch=IA
 # Qemu Boot flags
 BOOT_FLAGS:= 
-BOOTLOADER_SRC:=src/bootloader/$(BOOT_FS)
+ifeq ("$(BOOT_MODE)", "nographic")
+	BOOT_FLAGS:= -nographic
+else
+endif
+KERNEL_SRC:=src/kernel
+BIN_DIR:=bin/$(Arch)
+OBJ_DIR:=$(BIN_DIR)/objs
+ISO_DIR:=$(BIN_DIR)/iso
+BOOTLOADER_SRC:=src/bootloader/$(Arch)/$(BOOT_FS)
 STAGE1_BIN:=$(BIN_DIR)/$(BOOT_FS)/stage1
 STAGE2_BIN:=$(BIN_DIR)/$(BOOT_FS)/stage2
 STAGE2_OBJ:=$(OBJ_DIR)/$(BOOT_FS)/stage2
 KERNEL_BIN:=$(BIN_DIR)/kernel
 KERNEL_OBJ:=$(OBJ_DIR)/kernel
-ifeq ("$(BOOT_MODE)", "nographic")
-	BOOT_FLAGS:= -nographic
-else
-endif
+
 .PHONY: default setup_flags build_floppy run_floppy boot1 test run_nographic clean fat12
 default: build_floppy run_floppy
 
@@ -29,11 +32,11 @@ make_files:
 	mkdir -p $(OBJ_DIR)
 	mkdir -p $(ISO_DIR)
 build_floppy: make_files stage1 stage2 test
-	dd if=/dev/zero of=bin/silix.floppy bs=512 count=2880
-	mkfs.fat -F 12 bin/silix.floppy 
-	mcopy -i bin/silix.floppy $(STAGE2_BIN)/stage2.bin ::/STAGE2.bin
-	dd if=$(STAGE1_BIN)/stage1.bin of=bin/silix.floppy bs=512 count=1 conv=notrunc
-	mcopy -i bin/silix.floppy $(BIN_DIR)/test.bin ::/TEST.BIN
+	dd if=/dev/zero of=$(BIN_DIR)/silix.floppy bs=512 count=2880
+	mkfs.fat -F 12 $(BIN_DIR)/silix.floppy 
+	mcopy -i $(BIN_DIR)/silix.floppy $(STAGE2_BIN)/stage2.bin ::/STAGE2.bin
+	dd if=$(STAGE1_BIN)/stage1.bin of=$(BIN_DIR)/silix.floppy bs=512 count=1 conv=notrunc
+	mcopy -i $(BIN_DIR)/silix.floppy $(BIN_DIR)/test.bin ::/TEST.BIN
 	echo "Hello World Test" | dd ibs=11 obs=512 seek=20 of=bin/silix.floppy count=1 conv=notrunc
 stage1:
 	$(MAKE) -C $(BOOTLOADER_SRC)/stage1 stage1 BIN_DIR=$(abspath $(STAGE1_BIN))

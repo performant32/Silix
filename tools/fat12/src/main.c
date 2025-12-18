@@ -21,7 +21,7 @@ typedef struct BPB{
     uint16_t m_Heads;
     uint32_t m_HiddenSectors;
     uint32_t m_LargeSectorCount;
-    // EBPB
+    // EBPB2
     uint8_t m_DriveNumber;
     uint8_t m_WindowsNTFlags;
     uint32_t m_VolumeId;
@@ -107,7 +107,7 @@ int main(int argc, char** argv){
 
     write(1, bpb.m_VolumeLabelString, 11);
     PrintNewLine();
-    CHS chs1 = LBAToCHS(&bpb, 20);
+    CHS chs1 = LBAToCHS(&bpb, 1);
     printf("LBA 1 %u %u %u\n", chs1.m_Cylinder, chs1.m_Head, chs1.m_Sector);
 
     printf("Sectors per cluster %u\n", bpb.m_SectorsPerCluster); 

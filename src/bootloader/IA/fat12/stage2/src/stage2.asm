@@ -9,5 +9,6 @@ start:
     call _PrintString
     cli
     hlt
+section .data 
 times 12 db 0
 test: db "Fully Loaded", 0x00

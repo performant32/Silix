@@ -1,4 +1,5 @@
 bits 16
+section .code
 global _PrintChar
 global _PrintString
 
