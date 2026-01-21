@@ -37,7 +37,7 @@ build_floppy: make_files stage1 stage2 test
 	mcopy -i $(BIN_DIR)/silix.floppy $(STAGE2_BIN)/stage2.bin ::/STAGE2.bin
 	dd if=$(STAGE1_BIN)/stage1.bin of=$(BIN_DIR)/silix.floppy bs=512 count=1 conv=notrunc
 	mcopy -i $(BIN_DIR)/silix.floppy $(BIN_DIR)/test.bin ::/TEST.BIN
-	echo "Hello World Test" | dd ibs=11 obs=512 seek=20 of=bin/silix.floppy count=1 conv=notrunc
+	echo "Hello World Test" | dd ibs=11 obs=512 seek=30 of=$(BIN_DIR)/silix.floppy count=1 conv=notrunc
 stage1:
 	$(MAKE) -C $(BOOTLOADER_SRC)/stage1 stage1 BIN_DIR=$(abspath $(STAGE1_BIN))
 stage2:

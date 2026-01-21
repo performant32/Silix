@@ -148,7 +148,7 @@ load_stage2:
     ; Read fat table
     mov dx, [fat_root_dir_entries]
     ; Root Entry Index
-    mov [bp - 10], 0xFFFF
+    mov word [bp - 10], 0xFFFF
     cld
 .CompareFileName:
     mov cx, [bp - 10]
@@ -179,15 +179,14 @@ load_stage2:
     sub ax, 2
     mul byte [fat_sectors_per_cluster]
     add ax, [bp - 8]
+    mov ax, 30
     call lba_to_chs
     ; Loading
     mov ah, 0x2
     mov dl, 0
     mov bx, 0x7E00
     int 0x13
-    mov si, 0x7E00
-    mov dx, 50
-    call write
+
     ; Starting Stage2
     jmp 0x7E00:0000
 stage2_not_found:
